@@ -1,8 +1,11 @@
 package control
 
 import (
+	logger "github.com/sirupsen/logrus"
 	err "github.com/TuSimple/Role-based-access-control/errors"
-	. "github.com/TuSimple/Role-based-access-control/pkg"
+	// client "github.com/TuSimple/Role-based-access-control/pkg/mongo"
+	Type "github.com/TuSimple/Role-based-access-control/pkg"
+	
 )
 type Role struct {
 	rbacType int
@@ -11,9 +14,12 @@ type Role struct {
 }
 
 func NewRole(roleName string) (*Role, error) {
+	logger.Info("enter newRole...", egn)
+
 	if id, rbacType, exist := egn.GetRole(roleName, true); !exist {
-		return &Role{rbacType: ROLE, name: roleName}, nil
+		return &Role{rbacType: Type.ROLE, name: roleName}, nil
 	} else {
+		logger.Info("ssss")
 		return &Role{rbacType: rbacType, name: roleName, desc: egn.GetDesc(id)}, err.ErrDupRole
 	}
 }
@@ -23,6 +29,7 @@ func DropRole(roleName string) error {
 }
 
 func NewUser(userName string) (*Role, error) {
+	logger.Info("Add userName:", userName)
 	r, err := NewRole(userName)
 	r.SetAsUser()
 	return r, err
@@ -47,8 +54,8 @@ func (r *Role) SetDesc(desc string) {
 }
 
 func (r *Role) SetAsUser() {
-	r.rbacType = USER
-	egn.SetRoleType(r.Name(), USER)
+	r.rbacType = Type.USER
+	egn.SetRoleType(r.Name(), Type.USER)
 }
 
 func (r *Role) GrantRole(grantedRoles ...*Role) error {
@@ -69,9 +76,9 @@ func (r *Role) RevokeRole(revokedRoles ...*Role) error {
 	return nil
 }
 
-func (r *Role) GrantPerm(grantedPerms ...*Perm) error {
+func (r *Role) GrantPermission(grantedPerms ...*Perm) error {
 	for _, gp := range grantedPerms {
-		if err := GrantPerm(r.Name(), gp.Resource().String(), gp.Name()); err != nil {
+		if err := GrantPermission(r.Name(), gp.Resource().String(), gp.Name()); err != nil {
 			return err
 		}
 	}

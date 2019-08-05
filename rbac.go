@@ -2,16 +2,20 @@ package control
 
 import (
 	logger "github.com/sirupsen/logrus"
-	client "github.com/TuSimple/Role-based-access-control/pkg"
+	interFace "github.com/TuSimple/Role-based-access-control/pkg"
 )
 var (
-	egn client.RbacInterface
+	egn interFace.RbacInterface
 )
 
 func Init(conn interface{}) error {
 	logger.Info("Rbac Init...")
-	e, err := client.Factory(conn)
-	egn=e
+	e, err := interFace.Factory(conn)
+	if err != nil {
+		logger.Errorf("%v.", err)
+	}
+	egn = e
+	logger.Info("engine = ", egn)
 	return err
 }
 
@@ -35,7 +39,7 @@ func RevokeRole(revokee string, revoked ...string) error {
 	return egn.RevokeRole(revokee, revoked...)
 }
 
-func GrantPerm(roleName string, res string, perm ...string) error {
+func GrantPermission(roleName string, res string, perm ...string) error {
 	return egn.GrantPermission(roleName, res, perm...)
 }
 

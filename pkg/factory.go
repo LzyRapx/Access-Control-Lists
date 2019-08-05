@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"reflect"
+	logger "github.com/sirupsen/logrus"
 )
 
 type InitFunc func(interface{}) (RbacInterface, error)
@@ -17,8 +18,10 @@ func Register(conn interface{}, f InitFunc) {
 }
 
 func Factory(conn interface{}) (RbacInterface, error){
+	logger.Info("Enter Factory...")
 	if f, flag := registry[reflect.TypeOf(conn).String()]; !flag {
-		return nil, fmt.Errorf("Erroe. conn type %T does not registered\n", conn)
+		logger.Errorf("Error. conn type: %T does not registered\n", conn)
+		return nil, fmt.Errorf("Error. conn type %T does not registered\n", conn)
 	} else {
 		return f(conn)
 	}

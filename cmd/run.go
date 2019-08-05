@@ -3,7 +3,7 @@ package main
 import (
 	logger "github.com/sirupsen/logrus"
 	rbac "github.com/TuSimple/Role-based-access-control"
-	// "github.com/TuSimple/Role-based-access-control/pkg"
+	_ "github.com/TuSimple/Role-based-access-control/pkg/mongo"
 	"gopkg.in/mgo.v2"
 	"time"
 	"math/rand"
@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	
 	logger.Info("Start...")
 	session, err := mgo.Dial("localhost")
 	if err != nil {
@@ -18,8 +19,17 @@ func main() {
 	}
 	fmt.Println("session = ", session)
 	db := session.DB(fmt.Sprintf("rbac_%d", rand.New(rand.NewSource(time.Now().UnixNano())).Int31n))
-	rbac.Init(db)
+	fmt.Println("db = ", db)
+	err = rbac.Init(db)
+	if err != nil {
+		logger.Errorf("test = %v.", err)
+	}
 	rbac.NewUser("zhaoyang.liang")
-
+	rbac.NewUser("ming.xiao")
+	rbac.NewUser("hong.xiao")
+	rbac.GrantRole("zhaoyang.liang","admin")
+	rbac.GrantRole("ming.xiao","user")
+	rbac.GrantRole("hong.xiao", "guest")
+	// db.DropDatabase()
 }
 
