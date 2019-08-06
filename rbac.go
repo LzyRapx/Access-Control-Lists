@@ -43,15 +43,15 @@ func GrantPermission(roleName string, res string, perm ...string) error {
 	return egn.GrantPermission(roleName, res, perm...)
 }
 
-func RevokePerm(roleName, res string, perm ...string) error {
+func RevokePermission(roleName, res string, perm ...string) error {
 	return egn.RevokePermission(roleName, res, perm...)
 }
 
-func GrantGlobalPerm(roleName string, perm ...string) error {
+func GrantGlobalPermission(roleName string, perm ...string) error {
 	return egn.GrantPermission(roleName, "", perm...)
 }
 
-func RevokeGLobalPerm(roleName string, perm ...string) error {
+func RevokeGLobalPermission(roleName string, perm ...string) error {
 	return egn.RevokePermission(roleName, "", perm...)
 }
 

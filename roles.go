@@ -85,9 +85,9 @@ func (r *Role) GrantPermission(grantedPerms ...*Perm) error {
 	return nil
 }
 
-func (r *Role) RevokePerm(revokedPerms ...*Perm) error {
+func (r *Role) RevokePermission(revokedPerms ...*Perm) error {
 	for _, rp := range revokedPerms {
-		if err := RevokePerm(r.Name(), rp.Resource().String(), rp.Name()); err != nil {
+		if err := RevokePermission(r.Name(), rp.Resource().String(), rp.Name()); err != nil {
 			return err
 		}
 	}
@@ -106,7 +106,7 @@ func (r *Role) HasRole(roles ...*Role) bool {
 	return egn.HasAllRole(r.Name(), rl...)
 }
 
-func (r *Role) HasPerm(perms ...*Perm) bool {
+func (r *Role) HasPermission(perms ...*Perm) bool {
 	for _, perm := range perms {
 		if !egn.Decision(r.Name(), perm.Resource().Name(), perm.Name()) {
 			return false
@@ -115,7 +115,7 @@ func (r *Role) HasPerm(perms ...*Perm) bool {
 	return true
 }
 
-func (r *Role) HasPerm2(perms ...*Perm) bool {
+func (r *Role) HasPermission2(perms ...*Perm) bool {
 	for _, perm := range perms {
 		if !egn.DecisionEx(r.Name(), perm.Resource().Name(), perm.Name()) {
 			return false
