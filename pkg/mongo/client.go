@@ -12,9 +12,9 @@ import (
 	. "github.com/TuSimple/Role-based-access-control/pkg"
 )
 const (
-	SeqCol  = "seq"
-	RoleCol = "role"
-	PermCol = "perm"
+	SeqCol  = "Record"
+	RoleCol = "Roles"
+	PermCol = "Permission"
 	DescCol = "desc"
 )
 type SeqRecord struct {
@@ -31,12 +31,12 @@ type RoleRecord struct {
 	RoleName       string `bson:"_id,omitempty"`
 	RoleType       int
 	RoleDesc       string
-	GrantedRoles   []string
-	GrantedPermIds []int
-	IndirectGrants struct {
+	grantedroles   []string
+	grantedpermissionids []int
+	indirectgrants struct {
 		Scn     int
 		Roles   []string
-		PermIds []int
+		PermissionIds []int
 	}
 }
 
@@ -46,8 +46,8 @@ func NewRoleRecord() *RoleRecord {
 
 type PermRecord struct {
 	Id   int
-	Perm struct {
-		PermName string
+	Permission struct {
+		PermissionName string
 		Resource struct {
 			Type string
 			Url  string
@@ -77,7 +77,6 @@ type mongoEngine struct {
 }
 
 func init() {
-
 	Register(new(mgo.Database), Init)
 }
 
@@ -167,7 +166,7 @@ func (e *mongoEngine) GetRole(roleName string, create bool) (int, int, bool) {
 }
 
 func (e *mongoEngine) SetRoleType(roleName string, rbacType int) error {
-	if err := e.Roles.UpdateId(roleName, M{"$set": M{"roletype": rbacType}}); err != nil {
+	if err := e.Roles.UpdateId(roleName, M{"$set": M{"roleType": rbacType}}); err != nil {
 		return err
 	}
 	return nil
@@ -176,7 +175,7 @@ func (e *mongoEngine) SetRoleType(roleName string, rbacType int) error {
 func (e *mongoEngine) DropRole(roleName string) error {
 	if _, err := e.Roles.UpdateAll(
 		M{},
-		M{"$pullAll": M{"grantedroles": []string{roleName}}},
+		M{"$pullAll": M{"grantedRoles": []string{roleName}}},
 	); err != nil {
 		return err
 	}
@@ -192,7 +191,7 @@ func (e *mongoEngine) GrantRole(grantee string, grants ...string) error {
 	e.GetRole(grantee, true)
 	if err := e.Roles.UpdateId(
 		grantee,
-		M{"$addToSet": M{"grantedroles": M{"$each": grants}}},
+		M{"$addToSet": M{"grantedRoles": M{"$each": grants}}},
 	); err != nil {
 		return err
 	}
@@ -209,7 +208,7 @@ func (e *mongoEngine) RevokeRole(revokee string, revoked ...string) error {
 	}
 	if err := e.Roles.UpdateId(
 		revokee,
-		M{"$pullAll": M{"grantedroles": revoked}},
+		M{"$pullAll": M{"grantedRoles": revoked}},
 	); err != nil {
 		return err
 	}
@@ -217,16 +216,16 @@ func (e *mongoEngine) RevokeRole(revokee string, revoked ...string) error {
 	return nil
 }
 
-func (e *mongoEngine) GetPermission(permName, res string, create bool) (id int, exist bool) {
+func (e *mongoEngine) GetPermission(permissionName, res string, create bool) (id int, exist bool) {
 	perm := NewPerm()
-	q := e.Perms.Find(M{"_id.permname": permName, "_id.resource.url": res})
+	q := e.Perms.Find(M{"_id.permissionName": permissionName, "_id.resource.url": res})
 	if n, _ := q.Count(); n == 1 {
 		q.One(perm)
 		return perm.Id, true
 	} else {
 		perm.Id = e.nextId()
-		perm.Perm.PermName = permName
-		perm.Perm.Resource.Url = res
+		perm.Permission.PermissionName = permissionName
+		perm.Permission.Resource.Url = res
 		if err := e.Perms.Insert(perm); err != nil {
 			return -1, false
 		}
@@ -235,8 +234,8 @@ func (e *mongoEngine) GetPermission(permName, res string, create bool) (id int, 
 	}
 }
 
-func (e *mongoEngine) DropPermission(permName, res string) error {
-	if cInfo, err := e.Perms.RemoveAll(M{"_id.permname": permName, "_id.resource.string": res}); err != nil {
+func (e *mongoEngine) DropPermission(permissionName, res string) error {
+	if cInfo, err := e.Perms.RemoveAll(M{"_id.permissionName": permissionName, "_id.resource.string": res}); err != nil {
 		return err
 	} else if cInfo.Removed == 0 {
 		return errs.ErrPermNotExist
@@ -248,7 +247,7 @@ func (e *mongoEngine) DropPermission(permName, res string) error {
 
 func (e *mongoEngine) GrantPermission(roleName, resString string, perms ...string) error {
 	ids, _ := e.getPermIds(resString, perms, true)
-	chg := M{"$addToSet": M{"grantedpermids": M{"$each": ids}}}
+	chg := M{"$addToSet": M{"grantedPermissionIds": M{"$each": ids}}}
 	if _, err := e.Roles.UpsertId(roleName, chg); err != nil {
 		return err
 	}
@@ -263,7 +262,7 @@ func (e *mongoEngine) RevokePermission(roleName string, resString string, perms 
 	ids, _ := e.getPermIds(resString, perms, false)
 	if err := e.Roles.UpdateId(
 		roleName,
-		M{"$pullAll": M{"grantedpermids": ids}},
+		M{"$pullAll": M{"grantedPermissionIds": ids}},
 	); err != nil {
 		return err
 	}
@@ -296,7 +295,7 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 		return err
 	}
 	q.One(role)
-	if role.IndirectGrants.Scn == e.currentScn() {
+	if role.indirectgrants.Scn == e.currentScn() {
 		return nil
 	}
 	var indRoles sort.StringSlice
@@ -306,7 +305,7 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 		r := NewRoleRecord()
 		indRoles = append(indRoles, rn)
 		e.Roles.FindId(rn).One(r)
-		for _, id := range r.GrantedPermIds {
+		for _, id := range r.grantedpermissionids {
 			indPermIdMap[id] = true
 		}
 		return false
@@ -317,27 +316,27 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 	for pid, _ := range indPermIdMap {
 		indPermIds = append(indPermIds, pid)
 	}
-	role.IndirectGrants.Roles = indRoles
-	role.IndirectGrants.PermIds = indPermIds
-	role.IndirectGrants.Scn = e.currentScn()
+	role.indirectgrants.Roles = indRoles
+	role.indirectgrants.PermissionIds = indPermIds
+	role.indirectgrants.Scn = e.currentScn()
 	if err := e.Roles.UpdateId(
 		roleName,
-		M{"$set": M{"indirectgrants": role.IndirectGrants}},
+		M{"$set": M{"indirectGrants": role.indirectgrants}},
 	); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (e *mongoEngine) grantedRoles(roleName string) []string {
+func (e *mongoEngine) grantedroles(roleName string) []string {
 	role := NewRoleRecord()
 	e.C(RoleCol).FindId(roleName).One(role)
-	return role.GrantedRoles
+	return role.grantedroles
 }
 
 func (e *mongoEngine) HasAllRole(roleName string, hasRoleNames ...string) bool {
 	e.buildRoleCache(roleName)
-	dRoles := e.Roles.Find(M{"_id": roleName, "indirectgrants.roles": M{"$all": hasRoleNames}})
+	dRoles := e.Roles.Find(M{"_id": roleName, "indirectGrants.roles": M{"$all": hasRoleNames}})
 	if n, _ := dRoles.Count(); n == 0 {
 		return false
 	} else {
@@ -347,7 +346,7 @@ func (e *mongoEngine) HasAllRole(roleName string, hasRoleNames ...string) bool {
 
 func (e *mongoEngine) HasAnyRole(roleName string, hasRoleNames ...string) bool {
 	e.buildRoleCache(roleName)
-	dRoles := e.Roles.Find(M{"_id": roleName, "indirectgrants.roles": M{"$in": hasRoleNames}})
+	dRoles := e.Roles.Find(M{"_id": roleName, "indirectGrants.roles": M{"$in": hasRoleNames}})
 	if n, _ := dRoles.Count(); n == 0 {
 		return false
 	} else {
@@ -375,7 +374,7 @@ func (e *mongoEngine) Decision(roleName string, res string, perms ...string) boo
 		return false
 	}
 	e.buildRoleCache(roleName)
-	q := e.Roles.Find(M{"_id": roleName, "indirectgrants.permids": M{"$all": permids}})
+	q := e.Roles.Find(M{"_id": roleName, "indirectGrants.permissionIds": M{"$all": permids}})
 	if n, err := q.Count(); err != nil || n != 1 {
 		return false
 	} else {
@@ -385,7 +384,7 @@ func (e *mongoEngine) Decision(roleName string, res string, perms ...string) boo
 
 func (e *mongoEngine) DecisionEx(roleName string, res string, perms ...string) bool {
 	if permids, err := e.getPermIds(res, perms, false); err == nil {
-		q := e.Roles.Find(M{"_id": roleName, "indirectgrants.permids": M{"$all": permids}})
+		q := e.Roles.Find(M{"_id": roleName, "indirectGrants.permissionIds": M{"$all": permids}})
 		if n, err := q.Count(); err == nil && n == 1 {
 			return true
 		}
@@ -395,7 +394,7 @@ func (e *mongoEngine) DecisionEx(roleName string, res string, perms ...string) b
 	if err := e.Roles.FindId(roleName).One(role); err != nil {
 		return false
 	}
-	permids := role.IndirectGrants.PermIds
+	permids := role.indirectgrants.PermissionIds
 	r1, err := resource.Parse(res)
 	if err != nil {
 		panic(err)
@@ -406,11 +405,11 @@ func (e *mongoEngine) DecisionEx(roleName string, res string, perms ...string) b
 		if err := e.Perms.Find(M{"id": pid}).One(perm); err != nil {
 			continue
 		}
-		r2, err := resource.Parse(perm.Perm.Resource.Url)
+		r2, err := resource.Parse(perm.Permission.Resource.Url)
 		if err != nil {
 			continue
 		}
-		pm[perm.Perm.PermName] = append(pm[perm.Perm.PermName], r2)
+		pm[perm.Permission.PermissionName] = append(pm[perm.Permission.PermissionName], r2)
 	}
 	for _, p := range perms {
 		found := false

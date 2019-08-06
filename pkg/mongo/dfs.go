@@ -16,7 +16,7 @@ func (e *mongoEngine) dfs(roleName string, f func(string) bool) {
 		found = true
 		return
 	}
-	for _, r := range e.grantedRoles(roleName) {
+	for _, r := range e.grantedroles(roleName) {
 		e.dfs(r, f)
 	}
 	return

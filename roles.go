@@ -19,7 +19,6 @@ func NewRole(roleName string) (*Role, error) {
 	if id, rbacType, exist := egn.GetRole(roleName, true); !exist {
 		return &Role{rbacType: Type.ROLE, name: roleName}, nil
 	} else {
-		logger.Info("ssss")
 		return &Role{rbacType: rbacType, name: roleName, desc: egn.GetDesc(id)}, err.ErrDupRole
 	}
 }
@@ -58,8 +57,8 @@ func (r *Role) SetAsUser() {
 	egn.SetRoleType(r.Name(), Type.USER)
 }
 
-func (r *Role) GrantRole(grantedRoles ...*Role) error {
-	for _, gr := range grantedRoles {
+func (r *Role) GrantRole(grantedroles ...*Role) error {
+	for _, gr := range grantedroles {
 		if err := GrantRole(r.Name(), gr.Name()); err != nil {
 			return err
 		}

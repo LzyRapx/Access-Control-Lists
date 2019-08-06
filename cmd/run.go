@@ -25,8 +25,9 @@ func main() {
 		logger.Errorf("err = %v.", err)
 	}
 	rbac.NewUser("zhaoyang.liang")
-	rbac.NewUser("ming.xiao")
-	rbac.NewUser("hong.xiao")
+	rbac.NewUser("pony.ma")
+	rbac.NewUser("zeming.jiang")
+	rbac.NewUser("jack.ma")
 
 	rbac.GrantRole("zhaoyang.liang","super admin", "cluster admin", "namespace admin", "user") // zhaoyang.liang has admin permission
 	rbac.GrantRole("pony.ma","cluster admin", "namespace admin", "user")
@@ -41,7 +42,7 @@ func main() {
 
 	task := "www.baidu.com"
 	rbac.GrantPermission("zhaoyang.liang", task, "delete", "update")
-	rbac.GrantPermission("pong.ma", task, "insert", "read", "readlist")
+	rbac.GrantPermission("pony.ma", task, "insert", "read", "readlist")
 	rbac.GrantPermission("jack.ma", task, "create")
 
 	rbac.GrantGlobalPermission("super admin", "read")
