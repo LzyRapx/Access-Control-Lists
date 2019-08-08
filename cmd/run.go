@@ -47,7 +47,7 @@ func main() {
 
 	rbac.GrantGlobalPermission("super admin", "read")
 
-	if rbac.HasRole("zhaoyang.liang","cluster admin") == true {
+	if rbac.HasRole("zhaoyang.liang","cluster admin") == false {
 		logger.Info("zhaoyang.liang is a super admin, should has cluster admin's perimission")
 	}
 	if rbac.HasRole("zhaoyang.liang","super admin") == true {
@@ -59,8 +59,19 @@ func main() {
 	if rbac.HasRole("zhaoyang.liang","user") == true {
 		logger.Info("zhaoyang.liang is a super admin, should has user's perimission")
 	}
-	
-
-	// db.DropDatabase()
+	if rbac.HasRole("jack.ma", "delete") == false {
+		logger.Info("Jack.ma is just a user, should not has delete permission")
+	}
+    if rbac.Decision("jack.ma", task, "delete") == false {
+		logger.Info("jack.ma is user and should not have delete task permission")
+	}
+	if rbac.DecisionEx("jack.ma", "abc", "create") == false {
+		logger.Info("jack.ma should has all create permission on all target")
+	}
+	rbac.RevokeRole("zhaoyang.liang","super admin")
+	if rbac.HasRole("zhaoyang.liang","cluster admin") == false {
+		logger.Info("zhaoyang.liang is not a super admin now, should not has cluster admin's perimission")
+	}
+	db.DropDatabase()
 }
 
