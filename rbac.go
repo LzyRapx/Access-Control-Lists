@@ -34,7 +34,7 @@ func HasAnyRole(roleName string, hasRoleNames ...string) bool {
 func GrantRole(grantee string, granted ...string) error {
 	return egn.GrantRole(grantee, granted...)
 }
-
+// 撤销权限
 func RevokeRole(revokee string, revoked ...string) error {
 	return egn.RevokeRole(revokee, revoked...)
 }

@@ -15,8 +15,7 @@ type Role struct {
 
 func NewRole(roleName string) (*Role, error) {
 	logger.Info("enter newRole...", egn)
-
-	if id, rbacType, exist := egn.GetRole(roleName, true); !exist {
+	if id, rbacType, exist := egn.GetRole(roleName, true); !exist { // 存在
 		return &Role{rbacType: Type.ROLE, name: roleName}, nil
 	} else {
 		return &Role{rbacType: rbacType, name: roleName, desc: egn.GetDesc(id)}, err.ErrDupRole

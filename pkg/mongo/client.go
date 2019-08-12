@@ -31,9 +31,9 @@ type RoleRecord struct {
 	RoleName       string `bson:"_id,omitempty"`
 	RoleType       int
 	RoleDesc       string
-	grantedroles   []string
+	grantedRoles   []string
 	grantedpermissionids []int
-	indirectgrants struct {
+	indirectGrants struct {
 		Scn     int
 		Roles   []string
 		PermissionIds []int
@@ -188,7 +188,9 @@ func (e *mongoEngine) DropRole(roleName string) error {
 }
 
 func (e *mongoEngine) GrantRole(grantee string, grants ...string) error {
+	fmt.Println("tttt = ", grants)
 	e.GetRole(grantee, true)
+	fmt.Println("grants = ", grants)
 	if err := e.Roles.UpdateId(
 		grantee,
 		M{"$addToSet": M{"grantedRoles": M{"$each": grants}}},
@@ -201,7 +203,7 @@ func (e *mongoEngine) GrantRole(grantee string, grants ...string) error {
 	e.IncScn()
 	return nil
 }
-
+// 撤销权限
 func (e *mongoEngine) RevokeRole(revokee string, revoked ...string) error {
 	if _, _, exist := e.GetRole(revokee, false); !exist {
 		return errs.ErrRoleNotExist
@@ -295,7 +297,7 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 		return err
 	}
 	q.One(role)
-	if role.indirectgrants.Scn == e.currentScn() {
+	if role.indirectGrants.Scn == e.currentScn() {
 		return nil
 	}
 	var indRoles sort.StringSlice
@@ -316,12 +318,12 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 	for pid, _ := range indPermIdMap {
 		indPermIds = append(indPermIds, pid)
 	}
-	role.indirectgrants.Roles = indRoles
-	role.indirectgrants.PermissionIds = indPermIds
-	role.indirectgrants.Scn = e.currentScn()
+	role.indirectGrants.Roles = indRoles
+	role.indirectGrants.PermissionIds = indPermIds
+	role.indirectGrants.Scn = e.currentScn()
 	if err := e.Roles.UpdateId(
 		roleName,
-		M{"$set": M{"indirectGrants": role.indirectgrants}},
+		M{"$set": M{"indirectGrants": role.indirectGrants}},
 	); err != nil {
 		return err
 	}
@@ -331,16 +333,20 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 func (e *mongoEngine) grantedroles(roleName string) []string {
 	role := NewRoleRecord()
 	e.C(RoleCol).FindId(roleName).One(role)
-	return role.grantedroles
+	return role.grantedRoles
 }
 
 func (e *mongoEngine) HasAllRole(roleName string, hasRoleNames ...string) bool {
 	e.buildRoleCache(roleName)
+	fmt.Println("roleName = ", roleName)
+	fmt.Println("hasRoleNames = ", hasRoleNames)
 	dRoles := e.Roles.Find(M{"_id": roleName, "indirectGrants.roles": M{"$all": hasRoleNames}})
 	if n, _ := dRoles.Count(); n == 0 {
-		return false
-	} else {
+		fmt.Println("n = ", n)
+		fmt.Println("asdasdasdad")
 		return true
+	} else {
+		return false
 	}
 }
 
@@ -394,7 +400,7 @@ func (e *mongoEngine) DecisionEx(roleName string, res string, perms ...string) b
 	if err := e.Roles.FindId(roleName).One(role); err != nil {
 		return false
 	}
-	permids := role.indirectgrants.PermissionIds
+	permids := role.indirectGrants.PermissionIds
 	r1, err := resource.Parse(res)
 	if err != nil {
 		panic(err)

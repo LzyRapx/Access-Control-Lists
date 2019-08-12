@@ -5,9 +5,9 @@ import (
 	rbac "github.com/TuSimple/Role-based-access-control"
 	_ "github.com/TuSimple/Role-based-access-control/pkg/mongo"
 	"gopkg.in/mgo.v2"
-	"time"
-	"math/rand"
 	"fmt"
+	"math/rand"
+	"time"
 )
 
 func main() {
@@ -18,7 +18,10 @@ func main() {
 		panic("cannot connect to localhost")
 	}
 	fmt.Println("session = ", session)
-	db := session.DB(fmt.Sprintf("rbac_%d", rand.New(rand.NewSource(time.Now().UnixNano())).Int31n))
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	num := r.Int31()%10000
+	db := session.DB(fmt.Sprintf("rbac_%d", num))
+	fmt.Println("num = ", num)
 	fmt.Println("db = ", db)
 	err = rbac.Init(db)
 	if err != nil {
@@ -29,13 +32,13 @@ func main() {
 	rbac.NewUser("zeming.jiang")
 	rbac.NewUser("jack.ma")
 
-	rbac.GrantRole("zhaoyang.liang","super admin", "cluster admin", "namespace admin", "user") // zhaoyang.liang has admin permission
+	rbac.GrantRole("zhaoyang.liang","superAdmin", "cluster admin", "namespace admin", "user") // zhaoyang.liang has admin permission
 	rbac.GrantRole("pony.ma","cluster admin", "namespace admin", "user")
 	rbac.GrantRole("zeming.jiang", "namesapce admin", "user")
 	rbac.GrantRole("jack.ma", "user")
 	
 
-	rbac.GrantRole("super admin", "cluster admin")
+	rbac.GrantRole("superAdmin", "cluster admin")
 	rbac.GrantRole("cluster admin", "namespace admin")
 	rbac.GrantRole("namespace admin", "user")
 
@@ -45,16 +48,16 @@ func main() {
 	rbac.GrantPermission("pony.ma", task, "insert", "read", "readlist")
 	rbac.GrantPermission("jack.ma", task, "create")
 
-	rbac.GrantGlobalPermission("super admin", "read")
+	rbac.GrantGlobalPermission("superAdmin", "read")
 
-	if rbac.HasRole("zhaoyang.liang","cluster admin") == false {
+	if rbac.HasRole("zhaoyang.liang", "cluster admin") == true {
 		logger.Info("zhaoyang.liang is a super admin, should has cluster admin's perimission")
 	}
-	if rbac.HasRole("zhaoyang.liang","super admin") == true {
+	if rbac.HasRole("zhaoyang.liang","superAdmin") == true {
 		logger.Info("zhaoyang.liang is a super admin, should has super admin's perimission")
 	}
-	if rbac.HasRole("zhaoyang.liang","user") == true {
-		logger.Info("zhaoyang.liang is a super admin, should has user's perimission")
+	if rbac.HasRole("zhaoyang.liang","namespace admin") == true {
+		logger.Info("zhaoyang.liang is a super admin, should has namespace admin's perimission")
 	}
 	if rbac.HasRole("zhaoyang.liang","user") == true {
 		logger.Info("zhaoyang.liang is a super admin, should has user's perimission")
@@ -68,10 +71,10 @@ func main() {
 	if rbac.DecisionEx("jack.ma", "abc", "create") == false {
 		logger.Info("jack.ma should has all create permission on all target")
 	}
-	rbac.RevokeRole("zhaoyang.liang","super admin")
-	if rbac.HasRole("zhaoyang.liang","cluster admin") == false {
-		logger.Info("zhaoyang.liang is not a super admin now, should not has cluster admin's perimission")
+	rbac.RevokeRole("zhaoyang.liang","superAdmin")
+	if rbac.HasRole("zhaoyang.liang","superAdmin") == false {
+		logger.Info("zhaoyang.liang is not a super admin now, should not has super admin's perimission")
 	}
-	db.DropDatabase()
+	// db.DropDatabase()
 }
 
