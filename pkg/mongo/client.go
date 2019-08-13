@@ -32,7 +32,7 @@ type RoleRecord struct {
 	RoleType       int
 	RoleDesc       string
 	grantedRoles   []string
-	grantedpermissionids []int
+	grantedPermissionIds []int
 	indirectGrants struct {
 		Scn     int
 		Roles   []string
@@ -82,7 +82,7 @@ func init() {
 
 func Init(conn interface{}) (RbacInterface, error) {
 	if db, ok := conn.(*mgo.Database); !ok {
-		return nil, fmt.Errorf("need type *mgo.Database, got %T\n", conn)
+		return nil, fmt.Errorf("Need type *mgo.Database, got %T\n", conn)
 	} else {
 		cnt, _ := db.C(`system.namespaces`).Find(M{`name`: fmt.Sprintf(`%s.%s`, db.Name, SeqCol)}).Count()
 		if cnt == 0 {
@@ -307,7 +307,7 @@ func (e *mongoEngine) buildRoleCache(roleName string) error {
 		r := NewRoleRecord()
 		indRoles = append(indRoles, rn)
 		e.Roles.FindId(rn).One(r)
-		for _, id := range r.grantedpermissionids {
+		for _, id := range r.grantedPermissionIds {
 			indPermIdMap[id] = true
 		}
 		return false
@@ -340,10 +340,9 @@ func (e *mongoEngine) HasAllRole(roleName string, hasRoleNames ...string) bool {
 	e.buildRoleCache(roleName)
 	fmt.Println("roleName = ", roleName)
 	fmt.Println("hasRoleNames = ", hasRoleNames)
-	dRoles := e.Roles.Find(M{"_id": roleName, "indirectGrants.roles": M{"$all": hasRoleNames}})
-	if n, _ := dRoles.Count(); n == 0 {
+	dRoles := e.Roles.Find(M{"_id": roleName, "grantedRoles": M{"$all": hasRoleNames}})
+	if n, _ := dRoles.Count(); n != 0 {
 		fmt.Println("n = ", n)
-		fmt.Println("asdasdasdad")
 		return true
 	} else {
 		return false
@@ -352,11 +351,11 @@ func (e *mongoEngine) HasAllRole(roleName string, hasRoleNames ...string) bool {
 
 func (e *mongoEngine) HasAnyRole(roleName string, hasRoleNames ...string) bool {
 	e.buildRoleCache(roleName)
-	dRoles := e.Roles.Find(M{"_id": roleName, "indirectGrants.roles": M{"$in": hasRoleNames}})
-	if n, _ := dRoles.Count(); n == 0 {
-		return false
-	} else {
+	dRoles := e.Roles.Find(M{"_id": roleName, "grantedRoles": M{"$in": hasRoleNames}})
+	if n, _ := dRoles.Count(); n != 0 {
 		return true
+	} else {
+		return false
 	}
 }
 
@@ -380,7 +379,7 @@ func (e *mongoEngine) Decision(roleName string, res string, perms ...string) boo
 		return false
 	}
 	e.buildRoleCache(roleName)
-	q := e.Roles.Find(M{"_id": roleName, "indirectGrants.permissionIds": M{"$all": permids}})
+	q := e.Roles.Find(M{"_id": roleName, "indirectGrants.PermissionIds": M{"$all": permids}})
 	if n, err := q.Count(); err != nil || n != 1 {
 		return false
 	} else {
@@ -390,7 +389,7 @@ func (e *mongoEngine) Decision(roleName string, res string, perms ...string) boo
 
 func (e *mongoEngine) DecisionEx(roleName string, res string, perms ...string) bool {
 	if permids, err := e.getPermIds(res, perms, false); err == nil {
-		q := e.Roles.Find(M{"_id": roleName, "indirectGrants.permissionIds": M{"$all": permids}})
+		q := e.Roles.Find(M{"_id": roleName, "indirectGrants.PermissionIds": M{"$all": permids}})
 		if n, err := q.Count(); err == nil && n == 1 {
 			return true
 		}
