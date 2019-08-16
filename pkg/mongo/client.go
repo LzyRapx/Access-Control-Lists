@@ -342,7 +342,6 @@ func (e *mongoEngine) HasAllRole(roleName string, hasRoleNames ...string) bool {
 	fmt.Println("hasRoleNames = ", hasRoleNames)
 	dRoles := e.Roles.Find(M{"_id": roleName, "grantedRoles": M{"$all": hasRoleNames}})
 	if n, _ := dRoles.Count(); n != 0 {
-		fmt.Println("n = ", n)
 		return true
 	} else {
 		return false
